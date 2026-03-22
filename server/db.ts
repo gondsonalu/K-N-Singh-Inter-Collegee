@@ -1,13 +1,22 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import bcrypt from 'bcryptjs';
 
-const dbPath = path.join(process.cwd(), 'data.db');
+const isVercel = process.env.VERCEL === '1';
+const dbPath = isVercel 
+  ? path.join('/tmp', 'data.db') 
+  : path.join(process.cwd(), 'data.db');
 
-// Ensure data directory exists if needed, but here it's root
+// Ensure data directory exists if needed, but here it's root or /tmp
 let db: Database.Database;
 try {
   db = new Database(dbPath);
-  db.pragma('journal_mode = WAL');
+  // WAL mode might fail on some serverless environments, so we use a fallback
+  try {
+    db.pragma('journal_mode = WAL');
+  } catch (pragmaErr) {
+    console.warn("[Database] Failed to set WAL mode, continuing with default:", pragmaErr);
+  }
   console.log(`[Database] Connected to ${dbPath}`);
 } catch (err) {
   console.error(`[Database] CRITICAL: Failed to connect to database at ${dbPath}:`, err);
@@ -120,6 +129,19 @@ try {
   );
 `);
   console.log("[Database] Tables verified successfully.");
+  
+  // Auto-seed admin user if missing
+  try {
+    const adminEmail = 'admin@school.com';
+    const existing = db.prepare("SELECT * FROM users WHERE email = ?").get(adminEmail);
+    if (!existing) {
+      const hashedPassword = bcrypt.hashSync('adminpassword', 10);
+      db.prepare("INSERT INTO users (email, password, role) VALUES (?, ?, ?)").run(adminEmail, hashedPassword, 'admin');
+      console.log("[Database] Default admin user created.");
+    }
+  } catch (seedErr) {
+    console.error("[Database] Failed to auto-seed admin user:", seedErr);
+  }
 } catch (err) {
   console.error("[Database] CRITICAL: Failed to initialize tables:", err);
   throw err;
