@@ -22,10 +22,11 @@ interface AuthRequest extends Request {
   user?: string | jwt.JwtPayload;
 }
 
+export const app = express();
+
 async function startServer() {
   try {
-    const app = express();
-    const PORT = 3000; // Force port 3000 as per platform instructions
+    const PORT = process.env.PORT || 3000; 
 
     console.log("[Server] Initializing middleware...");
 
@@ -685,10 +686,12 @@ async function startServer() {
       });
     });
 
-    app.listen(Number(PORT), "0.0.0.0", () => {
-      console.log(`[Server] SUCCESS: Server is listening on http://0.0.0.0:${PORT}`);
-      console.log(`[Server] Ready to handle requests.`);
-    });
+    if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
+      app.listen(Number(PORT), "0.0.0.0", () => {
+        console.log(`[Server] SUCCESS: Server is listening on http://0.0.0.0:${PORT}`);
+        console.log(`[Server] Ready to handle requests.`);
+      });
+    }
   } catch (error) {
     console.error("CRITICAL: Failed to start server:", error);
     process.exit(1);
