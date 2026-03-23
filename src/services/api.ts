@@ -1,7 +1,5 @@
 
-const VITE_API_URL = import.meta.env.VITE_API_URL || "";
-const isProduction = import.meta.env.PROD;
-const API_BASE = VITE_API_URL || (isProduction ? `${window.location.origin}/api` : "/api");
+const API_BASE = "/api";
 
 export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   // Normalize endpoint: remove leading /api if it exists to avoid double prefixing
@@ -21,24 +19,36 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
     ? endpoint
     : `${API_BASE}${cleanEndpoint}`;
 
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
+  console.log(`[API] Fetching: ${url}`, options.method || 'GET');
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      let errorData = {};
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        console.error("[API] Failed to parse error response as JSON", e);
+      }
+      throw new Error((errorData as any).message || `HTTP error! status: ${response.status}`);
+    }
+
+    if (response.status === 204) {
+      return {} as T;
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error(`[API] Fetch error for ${url}:`, error);
+    throw error;
   }
-
-  if (response.status === 204) {
-    return {} as T;
-  }
-
-  return response.json();
 }
 
 export const api = {
@@ -56,7 +66,7 @@ export const api = {
       body: JSON.stringify(data) 
     }),
   delete: <T>(endpoint: string, options?: RequestInit) => apiFetch<T>(endpoint, { ...options, method: 'DELETE' }),
-  blob: async (endpoint: string, options?: RequestInit) => {
+  blob: async (endpoint: string, options: RequestInit = {}) => {
     // Normalize endpoint: remove leading /api if it exists to avoid double prefixing
     let cleanEndpoint = endpoint;
     if (endpoint.startsWith("/api")) {
@@ -74,18 +84,30 @@ export const api = {
       ? endpoint
       : `${API_BASE}${cleanEndpoint}`;
 
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...options?.headers,
-      },
-    });
+    console.log(`[API] Fetching Blob: ${url}`, options.method || 'GET');
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...options?.headers,
+        },
+      });
+
+      if (!response.ok) {
+        let errorData = {};
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          console.error("[API] Failed to parse error response as JSON", e);
+        }
+        throw new Error((errorData as any).message || `HTTP error! status: ${response.status}`);
+      }
+
+      return response.blob();
+    } catch (error) {
+      console.error(`[API] Blob fetch error for ${url}:`, error);
+      throw error;
     }
-
-    return response.blob();
   }
 };

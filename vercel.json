@@ -2,6 +2,14 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/api/home",
+      "destination": "/api/home.ts"
+    },
+    {
+      "source": "/api/admin/login",
+      "destination": "/api/admin/login.ts"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index.ts"
     },

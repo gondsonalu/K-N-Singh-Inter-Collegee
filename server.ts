@@ -65,6 +65,19 @@ app.get("/api/test", (req, res) => {
   res.json({ message: "API is reachable" });
 });
 
+app.get("/api/home", (req, res) => {
+  res.json({
+    title: "K N Singh Inter College",
+    description: "Welcome to K N Singh Inter College, Masuriyapur, Azamgarh. We are dedicated to providing quality education and fostering excellence in our students.",
+    stats: [
+      { label: "Students", value: "1500+" },
+      { label: "Faculty", value: "50+" },
+      { label: "Labs", value: "10+" },
+      { label: "Experience", value: "25+ Years" }
+    ]
+  });
+});
+
 // Health check and debug route
 app.get("/api/health", (req, res) => {
   try {
@@ -129,6 +142,24 @@ app.post("/api/auth/login", (req, res) => {
   } catch (error) {
     console.error("[API] Login error:", error);
     res.status(500).json({ message: "Internal server error during login", error: String(error) });
+  }
+});
+
+app.post("/api/admin/login", (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email) as { id: number, email: string, password: string } | undefined;
+    
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
+    
+    const validPassword = bcrypt.compareSync(password, user.password);
+    if (!validPassword) return res.status(401).json({ message: "Invalid credentials" });
+
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
+    res.json({ token, user: { email: user.email } });
+  } catch (error) {
+    console.error("[API] Admin login error:", error);
+    res.status(500).json({ message: "Internal server error during admin login", error: String(error) });
   }
 });
 

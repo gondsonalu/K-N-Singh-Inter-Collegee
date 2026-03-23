@@ -22,19 +22,33 @@ interface HomeHighlight {
 export const Home = () => {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [highlights, setHighlights] = useState<HomeHighlight[]>([]);
+  const [homeData, setHomeData] = useState<{ title: string, description: string } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [noticesData, highlightsData] = await Promise.all([
-          api.get<Notice[]>('/api/notices'),
-          api.get<HomeHighlight[]>('/api/home-highlights')
-        ]);
-
+        console.log("[Home] Fetching notices...");
+        const noticesData = await api.get<Notice[]>('/api/notices').catch(e => {
+          console.error("[Home] Failed to fetch notices:", e);
+          return [];
+        });
         setNotices(noticesData.slice(0, 3));
+
+        console.log("[Home] Fetching highlights...");
+        const highlightsData = await api.get<HomeHighlight[]>('/api/home-highlights').catch(e => {
+          console.error("[Home] Failed to fetch highlights:", e);
+          return [];
+        });
         setHighlights(highlightsData);
+
+        console.log("[Home] Fetching home data...");
+        const homeResponse = await api.get<{ title: string, description: string }>('/api/home').catch(e => {
+          console.error("[Home] Failed to fetch home data:", e);
+          return null;
+        });
+        if (homeResponse) setHomeData(homeResponse);
       } catch (err) {
-        console.error("Error fetching home data:", err);
+        console.error("Error in home data fetching process:", err);
       }
     };
     fetchData();
@@ -68,7 +82,7 @@ export const Home = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-4xl md:text-7xl font-bold text-white mb-6 font-display"
           >
-            K N Singh Inter College
+            {homeData?.title || "K N Singh Inter College"}
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
@@ -76,7 +90,7 @@ export const Home = () => {
             transition={{ delay: 0.2 }}
             className="text-xl md:text-2xl text-slate-200 mb-10 max-w-3xl mx-auto"
           >
-            Empowering Students with Knowledge and Values in Masuriyapur, Azamgarh.
+            {homeData?.description || "Empowering Students with Knowledge and Values in Masuriyapur, Azamgarh."}
           </motion.p>
           <motion.div 
             initial={{ opacity: 0, y: 20 }}

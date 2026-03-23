@@ -189,7 +189,7 @@ export const Admin = () => {
     e.preventDefault();
     setError(null);
     try {
-      const data = await api.post<{ token: string, user: { email: string } }>('/api/auth/login', { email, password });
+      const data = await api.post<{ token: string, user: { email: string } }>('/api/admin/login', { email, password });
       localStorage.setItem('admin_token', data.token);
       setIsLoggedIn(true);
       fetchData();

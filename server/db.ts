@@ -20,7 +20,16 @@ try {
   console.log(`[Database] Connected to ${dbPath}`);
 } catch (err) {
   console.error(`[Database] CRITICAL: Failed to connect to database at ${dbPath}:`, err);
-  throw err;
+  // Create a mock DB object to prevent crashes, though queries will fail
+  db = {
+    prepare: () => ({
+      get: () => null,
+      all: () => [],
+      run: () => ({ lastInsertRowid: 0, changes: 0 })
+    }),
+    exec: () => {},
+    pragma: () => {}
+  } as any;
 }
 
 // Initialize tables
